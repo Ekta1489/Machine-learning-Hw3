@@ -52,3 +52,121 @@ glm.fit <- glm(Direction~.,
 summary(glm.fit)
 ```
 Lookign at the p-values, we can say that at 5% level of significance, Lag2 is statistically significant. 
+
+# (c) Compute the confusion matrix and overall fraction of correct predictions. Briefly explain what the confusion matrix is telling you.
+
+```{r}
+test.pred.prob  <- predict(glm.fit, newdata = Weekly_dat,
+                           type = "response")
+test.pred <- rep("Down", length(test.pred.prob))
+test.pred[test.pred.prob > 0.5] <- "Up"
+
+confusionMatrix(data = as.factor(test.pred),
+                reference = Weekly_dat$Direction,
+                positive = "Up")
+```
+
+# (d) Plot the ROC curve using the predicted probability from logistic regression and report the AUC.
+
+```{r}
+roc.glm <- roc(Weekly_dat$Direction, test.pred.prob)
+plot(roc.glm, legacy.axes = TRUE, print.auc = TRUE)
+plot(smooth(roc.glm), col = 4, add = TRUE)
+```
+
+# The AUC is 0.554
+
+# (e) Now fit the logistic regression model using a training data period from 1990 to 2008, with Lag1 and Lag2 as the predictors. Plot the ROC curve using the held out data (that is, the data from 2009 and 2010) and report the AUC.
+
+```{r}
+train_dat = (Weekly$Year < 2009)
+Weekly_dat2 = Weekly_dat[!train_dat, 1:2]
+Direction_new = Weekly_dat$Direction[!train_dat]
+```
+
+```{r}
+glm.fit <- glm(Direction~ Lag1+Lag2, 
+               data = Weekly_dat, 
+               family = binomial, 
+               subset = train_dat)
+
+glm.probs = predict(glm.fit, Weekly_dat2, type = "response")
+
+test.pred <- rep("Down", length(glm.probs))
+test.pred[glm.probs > 0.5] <- "Up"
+```
+
+```{r}
+roc.glm <- roc(Direction_new, glm.probs)
+plot(roc.glm, legacy.axes = TRUE, print.auc = TRUE)
+plot(smooth(roc.glm), col = 4, add = TRUE)
+```
+# The AUC is 0.556
+
+# (f) Repeat (e) using LDA and QDA
+
+# Using LDA
+
+```{r}
+lda.fit <- lda(Direction ~ Lag1+Lag2, data = Weekly_dat,
+               subset = train_dat)
+plot(lda.fit)
+```
+# Evaluating the test set performance using ROC.
+
+```{r}
+lda.pred <- predict(lda.fit, newdata = Weekly_dat2)
+
+roc.lda <- roc(Direction_new, lda.pred$posterior[,2], 
+               levels = c("Down", "Up"))
+
+plot(roc.lda, legacy.axes = TRUE, print.auc = TRUE)
+```
+# The AUC for LDA is 0.557
+
+# Using QDA
+
+```{r}
+# usING qda() in MASS
+qda.fit <- qda(Direction~ Lag1 + Lag2, data = Weekly_dat,
+               subset = train_dat)
+
+qda.pred <- predict(qda.fit, newdata = Weekly_dat2)
+
+roc.qda <- roc(Direction_new, qda.pred$posterior[,2], 
+               levels = c("Down", "Up"))
+
+plot(roc.qda, legacy.axes = TRUE, print.auc = TRUE)
+```
+
+# The AUC for QDA is 0.529.
+
+# (g) Repeat (e) using KNN. Briefly discuss your results.
+
+```{r}
+ctrl <- trainControl(method = "repeatedcv",
+                     repeats = 5,
+                     summaryFunction = twoClassSummary,
+                     classProbs = TRUE)
+```
+
+```{r, warning=FALSE}
+set.seed(1)
+model.knn <- train(x = Weekly_dat[train_dat,1:2],
+                   y = Weekly_dat$Direction[train_dat],
+                   method = "knn",
+                   preProcess = c("center","scale"),
+                   tuneGrid = data.frame(k = seq(1,200, by = 5)),
+                   trControl = ctrl)
+
+ggplot(model.knn)
+```
+```{r}
+knn.pred <- predict(model.knn,newdata = Weekly_dat2, type = "prob")[,2]
+roc.knn <- roc(Direction_new, knn.pred)
+plot(roc.knn, legacy.axes = TRUE, print.auc = TRUE)
+```
+# The AUC is 0.563
+
+
+
