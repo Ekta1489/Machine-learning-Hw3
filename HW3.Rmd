@@ -9,7 +9,22 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# This questions will be answered using the Weekly data set, which is part of the ISLR package. This data is similar in nature to the Smarket data on the textbook (ISL, Chapter 4.6) except that it contains 1,089 weekly returns for 21 years, from the beginning of 1990 to the end of 2010. A description of the data can be found by typing ?Weekly in the Console.
+# Weekly S&P Stock Market Data
+
+**Description**
+Weekly percentage returns for the S&P 500 stock index between 1990 and 2010.
+
+**Format**
+A data frame with 1089 observations on the following 9 variables.
+Year: The year that the observation was recorded
+Lag1: Percentage return for previous week
+Lag2: Percentage return for 2 weeks previous
+Lag3: Percentage return for 3 weeks previous
+Lag4: Percentage return for 4 weeks previous
+Lag5: Percentage return for 5 weeks previous
+Volume: Volume of shares traded (average number of daily shares traded in billions)
+Today: Percentage return for this week
+Direction: A factor with levels Down and Up indicating whether the market had a positive or negative return on a given week
 
 ```{r}
 library(ISLR)
@@ -41,7 +56,7 @@ featurePlot(x = Weekly[, 1:7],
 # (b) Use the full data set to perform a logistic regression with Direction as the response and the five Lag variables plus Volume as predictors. Do any of the predictors appear to be statistically significant? If so, which ones?
 
 ```{r}
-Weekly_dat = Weekly[,-1] #excluding year 
+Weekly_dat = Weekly[,-1] 
 ```
 
 ```{r}
@@ -51,7 +66,7 @@ glm.fit <- glm(Direction~.,
 
 summary(glm.fit)
 ```
-Lookign at the p-values, we can say that at 5% level of significance, Lag2 is statistically significant. 
+# Lookign at the p-values, we can say that at 5% level of significance, Lag2 is statistically significant. 
 
 # (c) Compute the confusion matrix and overall fraction of correct predictions. Briefly explain what the confusion matrix is telling you.
 
@@ -65,6 +80,11 @@ confusionMatrix(data = as.factor(test.pred),
                 reference = Weekly_dat$Direction,
                 positive = "Up")
 ```
+
+* The Sensitivity is 92.07 % i.e., 92.07 % of True positives were predicted correctly. 
+* The Specificity is 11.16 % i.e., 11.16 % of True Negatives were predicted correctly.
+* The PPV is 56.43 % i.e., the precision is 56.43 %.
+* The Kappa value is low at 0.035.
 
 # (d) Plot the ROC curve using the predicted probability from logistic regression and report the AUC.
 
@@ -168,5 +188,19 @@ plot(roc.knn, legacy.axes = TRUE, print.auc = TRUE)
 ```
 # The AUC is 0.563
 
+# Comparing the results:
+
+```{r}
+auc <- c(roc.glm$auc[1], roc.glm$auc[1], roc.lda$auc[1], roc.knn$auc[1])
+
+plot(roc.glm, legacy.axes = TRUE)
+plot(roc.lda, col = 3, add = TRUE)
+plot(roc.qda, col = 4, add = TRUE)
+plot(roc.knn, col = 6, add = TRUE)
+modelNames <- c("glm","lda","qda","knn")
+legend("bottomright", legend = paste0(modelNames, ": ", round(auc,3)),
+col = 1:6, lwd = 2)
+```
 
 
+# The KNN appears to be the best model since the AUC is highest for KNN.
